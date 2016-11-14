@@ -3,6 +3,10 @@ data {
   int<lower=0> D; # genes
   int<lower=0> K; 
   matrix[D,N] y;
+  real<lower=0> aShape; 
+  real<lower=0> aRate; 
+  real<lower=0> bShape; 
+  real<lower=0> bRate; 
 }
 parameters {
   simplex[K] p; 
@@ -12,6 +16,8 @@ parameters {
 transformed parameters {
   vector[K] logprob[D];
   vector[K] logp; 
+  vector[D] lp; 
+  
   for (k in 1:K) {
     logp[k] <- log(p[k]);
   }
@@ -22,13 +28,14 @@ transformed parameters {
         l[n] <- beta_log(y[d,n], a[k], b[k]);
       logprob[d][k] <- sum(l) + logp[k];
     }
+    lp[d] <- log_sum_exp(logprob[d]); 
   }
 }
 model {
-  # p ~ dirichlet( rep_vector(1.0/K,K) ); # optional, if K=3 I don't think this matters
-  a ~ gamma(1.01,0.01);
-  b ~ gamma(1.01,0.01);
+  p ~ dirichlet( rep_vector(1.0/K,K) ); # optional, if K=3 I don't think this matters
+  a ~ gamma(aShape,aRate);
+  b ~ gamma(bShape,bRate);
   for (d in 1:D) {
-    increment_log_prob(log_sum_exp(logprob[d])); 
+    increment_log_prob(lp[d]); 
   }
 }
